@@ -10,12 +10,12 @@ kotlin {
     android {
         androidResources.enable = true
         compileSdk {
-            version = release(37) {
-                minorApiLevel = 0
+            version = release(ProjectConfig.Android.COMPILE_SDK) {
+                minorApiLevel = ProjectConfig.Android.COMPILE_SDK_MINOR
             }
         }
-        minSdk = 26
-        namespace = "top.yukonga.payload_extract_gui.shared"
+        minSdk = ProjectConfig.Android.MIN_SDK
+        namespace = "${ProjectConfig.PACKAGE_NAME}.shared"
     }
 
     jvm("desktop")

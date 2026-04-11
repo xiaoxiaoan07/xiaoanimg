@@ -41,16 +41,16 @@ android {
         }
     }
     compileSdk {
-        version = release(37) {
-            minorApiLevel = 0
+        version = release(ProjectConfig.Android.COMPILE_SDK) {
+            minorApiLevel = ProjectConfig.Android.COMPILE_SDK_MINOR
         }
     }
     defaultConfig {
-        applicationId = "top.yukonga.payload_extract_gui"
-        minSdk = 26
-        targetSdk = 37
-        versionName = "1.0.0"
-        versionCode = 1
+        applicationId = ProjectConfig.PACKAGE_NAME
+        minSdk = ProjectConfig.Android.MIN_SDK
+        targetSdk = ProjectConfig.Android.TARGET_SDK
+        versionName = ProjectConfig.VERSION_NAME
+        versionCode = getGitVersionCode()
     }
     splits {
         abi {
@@ -60,7 +60,7 @@ android {
             include("arm64-v8a", "x86_64")
         }
     }
-    namespace = "top.yukonga.payload_extract_gui"
+    namespace = ProjectConfig.PACKAGE_NAME
 }
 
 // ============================================================

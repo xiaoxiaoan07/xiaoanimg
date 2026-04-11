@@ -91,8 +91,8 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "payload-extract-gui"
-            packageVersion = "1.0.0"
+            packageName = ProjectConfig.APP_NAME
+            packageVersion = ProjectConfig.VERSION_NAME
             appResourcesRootDir.set(appResourcesDir.asFile)
 
             windows.iconFile = project.file("src/desktopMain/resources/windows/Icon.ico")
