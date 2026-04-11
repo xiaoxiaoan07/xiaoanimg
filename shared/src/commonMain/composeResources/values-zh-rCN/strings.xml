@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Payload Extract</string>
+    <string name="about">关于</string>
+    <string name="view_source">查看源代码</string>
+    <string name="opensource_info">本项目基于 GPL-2.0 许可证开源。</string>
+
+    <!-- Input -->
+    <string name="local">本地</string>
+    <string name="local_summary">选择本地的 payload.bin 或 OTA ZIP 文件</string>
+    <string name="url">链接</string>
+    <string name="url_summary">输入 HTTP/HTTPS 链接</string>
+    <string name="input">输入</string>
+    <string name="input_url">输入链接</string>
+    <string name="input_url_summary">输入 payload.bin 或 OTA ZIP 的链接</string>
+    <string name="parse">解析</string>
+    <string name="parsing">解析中…</string>
+    <string name="select_file">选择 payload 文件</string>
+    <string name="select_output_dir">选择输出目录</string>
+
+    <!-- OTA Info -->
+    <string name="ota_info">OTA 信息</string>
+    <string name="version">版本</string>
+    <string name="partitions">分区</string>
+    <string name="block_size">块大小</string>
+    <string name="security_patch">安全补丁</string>
+    <string name="update_type">更新类型</string>
+    <string name="update_type_full">完整更新</string>
+    <string name="update_type_incremental">增量更新</string>
+
+    <!-- Settings -->
+    <string name="settings">设置</string>
+    <string name="output_directory">输出目录</string>
+    <string name="not_selected">未选择</string>
+    <string name="verify_sha256">校验 SHA256</string>
+    <string name="verify_sha256_summary">校验每个操作的哈希值</string>
+
+    <!-- Partitions -->
+    <string name="partitions_count">分区 (%1$d)</string>
+    <string name="extract">提取</string>
+    <string name="retry">重试</string>
+    <string name="done">完成</string>
+    <string name="failed">失败</string>
+
+    <!-- Detail Dialog -->
+    <string name="size">大小</string>
+    <string name="operations">操作数</string>
+    <string name="sha256">SHA256</string>
+
+    <!-- Common -->
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+    <string name="close">关闭</string>
+    <string name="error">错误</string>
+    <string name="unknown_error">未知错误</string>
+</resources>
