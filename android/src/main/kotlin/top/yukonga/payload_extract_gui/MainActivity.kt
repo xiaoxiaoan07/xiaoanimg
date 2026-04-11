@@ -10,11 +10,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.DisposableEffect
 import util.AndroidAppContext
+import util.initFilePicker
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AndroidAppContext.init(this)
+        initFilePicker(this)
 
         setContent {
             val darkMode = isSystemInDarkTheme()

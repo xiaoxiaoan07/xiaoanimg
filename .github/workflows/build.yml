@@ -18,11 +18,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  desktop:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
         include:
           - os: macos-latest
             platform: macos arm64
@@ -32,13 +31,9 @@ jobs:
             archive: false
           - os: ubuntu-latest
             platform: linux x64
-            platformEx: android universal
             build-command: ./gradlew createReleaseDistributable
-            build-commandEx: ./gradlew :android:assembleRelease
             artifact-path: desktop/build/compose/binaries/main-release/app/payload-extract-gui
-            artifact-pathEx: android/build/outputs/apk/release/*.apk
             artifact-name: payload-extract-gui-linux-x64-bin
-            artifact-nameEx: payload-extract-gui-android-universal-apk.apk
             archive: true
           - os: windows-latest
             platform: windows x64
@@ -55,8 +50,6 @@ jobs:
           java-version: 21
 
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platformEx == 'android universal' && 'aarch64-linux-android,x86_64-linux-android' || '' }}
 
       - uses: actions/cache@v5
         with:
@@ -69,29 +62,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Decode android signing key
-        if: matrix.platformEx == 'android universal'
-        run: echo ${{ secrets.SIGNING_KEY }} | base64 -d > keystore.jks
-
       - name: Build ${{ matrix.platform }}
         run: ${{ matrix.build-command }}
 
-      - name: Build ${{ matrix.platformEx }}
-        if: matrix.platformEx == 'android universal'
-        run: ${{ matrix.build-commandEx }}
-        env:
-          KEYSTORE_PATH: "../keystore.jks"
-          KEYSTORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-
       - name: Rename ${{ matrix.platform }} artifact
         run: mv ${{ matrix.artifact-path }} ${{ matrix.artifact-name }}
-        shell: bash
-
-      - name: Rename ${{ matrix.platformEx }} artifact
-        if: matrix.platformEx == 'android universal'
-        run: mv ${{ matrix.artifact-pathEx }} ${{ matrix.artifact-nameEx }}
         shell: bash
 
       - name: Upload ${{ matrix.platform }} artifact
@@ -101,10 +76,57 @@ jobs:
           path: ${{ matrix.artifact-name }}
           archive: ${{ matrix.archive }}
 
-      - name: Upload ${{ matrix.platformEx }} artifact
-        if: matrix.platformEx == 'android universal'
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            native/target
+          key: android-cargo-${{ hashFiles('native/Cargo.lock') }}
+          restore-keys: android-cargo-
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Decode android signing key
+        run: echo ${{ secrets.SIGNING_KEY }} | base64 -d > keystore.jks
+
+      - name: Build android
+        run: ./gradlew :android:assembleRelease
+        env:
+          KEYSTORE_PATH: "../keystore.jks"
+          KEYSTORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Rename android artifacts
+        run: |
+          mv android/build/outputs/apk/release/android-arm64-v8a-release.apk payload-extract-gui-android-arm64-v8a.apk
+          mv android/build/outputs/apk/release/android-x86_64-release.apk payload-extract-gui-android-x86_64.apk
+
+      - name: Upload android arm64 artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact-nameEx }}
-          path: ${{ matrix.artifact-nameEx }}
+          name: payload-extract-gui-android-arm64-v8a.apk
+          path: payload-extract-gui-android-arm64-v8a.apk
+          archive: false
+
+      - name: Upload android x86_64 artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: payload-extract-gui-android-x86_64.apk
+          path: payload-extract-gui-android-x86_64.apk
           archive: false

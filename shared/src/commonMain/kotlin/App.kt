@@ -13,6 +13,7 @@ fun App(
 ) {
     MiuixTheme(
         colors = if (isDarkTheme) darkColorScheme() else lightColorScheme(),
+        smoothRounding = false,
     ) {
         CompositionLocalProvider(
             LocalContentColor provides MiuixTheme.colorScheme.onBackground,

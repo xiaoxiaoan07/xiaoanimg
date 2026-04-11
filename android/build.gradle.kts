@@ -51,7 +51,14 @@ android {
         targetSdk = 37
         versionName = "1.0.0"
         versionCode = 1
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+    }
+    splits {
+        abi {
+            isEnable = true
+            isUniversalApk = false
+            reset()
+            include("arm64-v8a", "x86_64")
+        }
     }
     namespace = "top.yukonga.payload_extract_gui"
 }

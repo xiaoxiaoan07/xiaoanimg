@@ -29,6 +29,10 @@ kotlin {
             implementation(libs.components.resources)
         }
 
+        named("androidMain").dependencies {
+            implementation(libs.androidx.activity)
+        }
+
         named("desktopMain").dependencies {
             implementation(libs.kotlinx.coroutines.swing)
         }
