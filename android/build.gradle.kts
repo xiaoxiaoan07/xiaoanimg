@@ -11,11 +11,33 @@ dependencies {
 }
 
 android {
+    val properties = Properties()
+    runCatching { properties.load(project.rootProject.file("local.properties").inputStream()) }
+    val keystorePath = properties.getProperty("KEYSTORE_PATH") ?: System.getenv("KEYSTORE_PATH")
+    val keystorePwd = properties.getProperty("KEYSTORE_PASS") ?: System.getenv("KEYSTORE_PASS")
+    val alias = properties.getProperty("KEY_ALIAS") ?: System.getenv("KEY_ALIAS")
+    val pwd = properties.getProperty("KEY_PASSWORD") ?: System.getenv("KEY_PASSWORD")
+    if (keystorePath != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePwd
+                keyAlias = alias
+                keyPassword = pwd
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            if (keystorePath != null) signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            if (keystorePath != null) signingConfig = signingConfigs.getByName("release")
         }
     }
     compileSdk {
