@@ -92,9 +92,10 @@ val sdkDir: String by lazy {
 
 val ndkVersion: String by lazy {
     val version = android.ndkVersion
-    if (version.isNotEmpty()) version
-    else File(sdkDir, "ndk").listFiles()?.maxByOrNull { it.name }?.name
+    version.ifEmpty {
+        File(sdkDir, "ndk").listFiles()?.maxByOrNull { it.name }?.name
         ?: error("No NDK found in $sdkDir/ndk/")
+    }
 }
 
 val ndkDir = File(sdkDir, "ndk/$ndkVersion")

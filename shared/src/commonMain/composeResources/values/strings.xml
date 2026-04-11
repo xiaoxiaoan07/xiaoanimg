@@ -49,6 +49,8 @@
     <string name="sha256">SHA256</string>
 
     <!-- Common -->
+    <string name="paste">Paste</string>
+    <string name="clear">Clear</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
     <string name="close">Close</string>

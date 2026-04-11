@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalScrollBarApi::class)
-
 package ui
 
 import androidx.compose.foundation.Image
@@ -26,9 +24,6 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.VerticalDivider
-import top.yukonga.miuix.kmp.basic.VerticalScrollBar
-import top.yukonga.miuix.kmp.basic.rememberScrollBarAdapter
-import top.yukonga.miuix.kmp.interfaces.ExperimentalScrollBarApi
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import ui.component.errorSection
 import ui.component.extractSettingsSection
@@ -144,13 +139,6 @@ fun WideScreenContent(
                     )
                 }
             }
-            VerticalScrollBar(
-                adapter = rememberScrollBarAdapter(rightListState),
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .fillMaxHeight(),
-                trackPadding = innerPadding,
-            )
         }
     }
 }

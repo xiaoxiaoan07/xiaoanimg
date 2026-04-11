@@ -4,42 +4,42 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Arrow shaft (vertical line going down) -->
+    <!-- Arrow shaft -->
     <path
-        android:pathData="M54,30L54,62"
-        android:strokeWidth="6"
+        android:pathData="M54,34L54,58"
+        android:strokeWidth="5"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round" />
     <!-- Arrow head left -->
     <path
-        android:pathData="M42,52L54,64"
-        android:strokeWidth="6"
+        android:pathData="M44,50L54,60"
+        android:strokeWidth="5"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <!-- Arrow head right -->
     <path
-        android:pathData="M66,52L54,64"
-        android:strokeWidth="6"
+        android:pathData="M64,50L54,60"
+        android:strokeWidth="5"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <!-- Tray left side -->
     <path
-        android:pathData="M34,68L34,78"
-        android:strokeWidth="6"
+        android:pathData="M38,63L38,73"
+        android:strokeWidth="5"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round" />
     <!-- Tray bottom -->
     <path
-        android:pathData="M34,78L74,78"
-        android:strokeWidth="6"
+        android:pathData="M38,73L70,73"
+        android:strokeWidth="5"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round" />
     <!-- Tray right side -->
     <path
-        android:pathData="M74,78L74,68"
-        android:strokeWidth="6"
+        android:pathData="M70,73L70,63"
+        android:strokeWidth="5"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round" />
 </vector>

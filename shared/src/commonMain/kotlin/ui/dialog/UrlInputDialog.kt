@@ -11,14 +11,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import payload_extract_gui.shared.generated.resources.Res
 import payload_extract_gui.shared.generated.resources.cancel
+import payload_extract_gui.shared.generated.resources.clear
 import payload_extract_gui.shared.generated.resources.confirm
 import payload_extract_gui.shared.generated.resources.input_url
 import payload_extract_gui.shared.generated.resources.input_url_summary
+import payload_extract_gui.shared.generated.resources.paste
 import payload_extract_gui.shared.generated.resources.url
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -32,6 +36,7 @@ fun UrlInputDialog(
     onConfirm: (String) -> Unit,
 ) {
     var url by remember(show) { mutableStateOf("") }
+    val clipboardManager = LocalClipboardManager.current
 
     WindowDialog(
         show = show,
@@ -39,15 +44,34 @@ fun UrlInputDialog(
         summary = stringResource(Res.string.input_url_summary),
         onDismissRequest = onDismiss,
     ) {
-        TextField(
-            value = url,
-            onValueChange = { url = it },
-            label = stringResource(Res.string.url),
-            useLabelAsPlaceholder = true,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-        )
+        ) {
+            TextField(
+                value = url,
+                onValueChange = { url = it },
+                label = stringResource(Res.string.url),
+                useLabelAsPlaceholder = true,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(12.dp))
+            if (url.isEmpty()) {
+                TextButton(
+                    text = stringResource(Res.string.paste),
+                    onClick = {
+                        clipboardManager.getText()?.text?.let { url = it }
+                    },
+                )
+            } else {
+                TextButton(
+                    text = stringResource(Res.string.clear),
+                    onClick = { url = "" },
+                )
+            }
+        }
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {

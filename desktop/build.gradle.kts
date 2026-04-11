@@ -75,12 +75,19 @@ tasks.named("desktopProcessResources") {
     dependsOn(copyNativeLibForDev)
 }
 
+afterEvaluate {
+    tasks.named("prepareAppResources") {
+        dependsOn(copyNativeLibForPackage)
+    }
+}
+
 compose.desktop {
     application {
         mainClass = "MainKt"
 
-        // Point java.library.path to the native output directory
-        jvmArgs += "-Djava.library.path=${nativeOutputDir.get().asFile.absolutePath}"
+        buildTypes.release.proguard {
+            configurationFiles.from("proguard-rules-jvm.pro")
+        }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
