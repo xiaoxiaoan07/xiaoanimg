@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
+val generatedSrcDir = layout.buildDirectory.dir("generated/projectConfig")
+
 kotlin {
     android {
         androidResources.enable = true
@@ -21,6 +23,9 @@ kotlin {
     jvm("desktop")
 
     sourceSets {
+        val commonMain by getting {
+            kotlin.srcDir(generatedSrcDir.map { it.dir("kotlin") })
+        }
         commonMain.dependencies {
             api(libs.miuix.ui)
             implementation(libs.miuix.preference)
@@ -41,4 +46,14 @@ kotlin {
 
 compose.resources {
     publicResClass = true
+}
+
+val generateVersionInfo by tasks.registering(GenerateVersionInfoTask::class) {
+    versionName.set(ProjectConfig.VERSION_NAME)
+    versionCode.set(getGitVersionCode())
+    outputFile.set(generatedSrcDir.map { it.file("kotlin/misc/VersionInfo.kt") })
+}
+
+tasks.named("generateComposeResClass").configure {
+    dependsOn(generateVersionInfo)
 }
