@@ -14,8 +14,6 @@ kotlin {
             implementation(projects.shared)
             implementation(compose.desktop.currentOs)
             implementation(libs.components.resources)
-            implementation(libs.jna)
-            implementation(libs.jna.platform)
         }
     }
 }
@@ -84,6 +82,12 @@ afterEvaluate {
 compose.desktop {
     application {
         mainClass = "MainKt"
+
+        // JNA-free HWND retrieval (sun.awt.AWTAccessor / WComponentPeer.getHWnd) needs these open.
+        jvmArgs += listOf(
+            "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.awt.windows=ALL-UNNAMED",
+        )
 
         buildTypes.release.proguard {
             configurationFiles.from("proguard-rules-jvm.pro")

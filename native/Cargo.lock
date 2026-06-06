@@ -1114,6 +1114,7 @@ dependencies = [
  "payload-extract",
  "serde",
  "serde_json",
+ "windows-sys",
 ]
 
 [[package]]

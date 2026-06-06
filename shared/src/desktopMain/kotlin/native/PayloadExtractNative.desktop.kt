@@ -23,4 +23,9 @@ actual object PayloadExtractNative {
     actual external fun getMetadataJson(handle: Long): String
     actual external fun extractPartition(input: String, outputDir: String, partitionName: String, threads: Int, verify: Boolean)
     actual external fun close(handle: Long)
+
+    // Desktop-only extra (not part of the common expect): set the Windows DWM
+    // immersive dark-mode title bar. No-op on non-Windows. hwnd is resolved
+    // JNA-free on the Java side (see theme.WindowsThemeManager).
+    external fun setWindowDarkTitleBar(hwnd: Long, isDark: Boolean)
 }

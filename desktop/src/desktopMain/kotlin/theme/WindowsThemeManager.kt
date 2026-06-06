@@ -1,101 +1,98 @@
 package theme
 
-import com.sun.jna.Native
-import com.sun.jna.Pointer
-import com.sun.jna.platform.win32.Advapi32
-import com.sun.jna.platform.win32.Advapi32Util
-import com.sun.jna.platform.win32.WinDef
-import com.sun.jna.platform.win32.WinDef.HWND
-import com.sun.jna.platform.win32.WinError
-import com.sun.jna.platform.win32.WinNT
-import com.sun.jna.platform.win32.WinReg
-import com.sun.jna.win32.StdCallLibrary
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import native.PayloadExtractNative
 
 object WindowsThemeManager {
-    private const val REGISTRY_KEY_PATH = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
+    private const val REGISTRY_KEY_PATH =
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
     private const val REGISTRY_VALUE_NAME = "AppsUseLightTheme"
+    private const val POLL_INTERVAL_MS = 1500L
 
-    private interface DwmApi : StdCallLibrary {
-        fun DwmSetWindowAttribute(
-            hwnd: HWND,
-            dwAttribute: Int,
-            pvAttribute: Pointer,
-            cbAttribute: Int
-        ): Int
-
-        companion object {
-            val INSTANCE: DwmApi by lazy {
-                Native.load("dwmapi", DwmApi::class.java)
-            }
-            const val DWMWA_USE_IMMERSIVE_DARK_MODE = 20
-        }
-    }
-
+    /**
+     * Reads HKCU\...\Personalize\AppsUseLightTheme via reg.exe.
+     * dark == (value == 0); value missing / any error => light (false).
+     * Mirrors the ProcessBuilder approach used by MacOSThemeManager / LinuxThemeManager.
+     */
     fun isWindowsDarkTheme(): Boolean {
         return try {
-            val value = Advapi32Util.registryGetIntValue(
-                WinReg.HKEY_CURRENT_USER,
-                REGISTRY_KEY_PATH,
-                REGISTRY_VALUE_NAME
-            )
-            value == 0
+            val process = ProcessBuilder(
+                "reg", "query", REGISTRY_KEY_PATH, "/v", REGISTRY_VALUE_NAME
+            ).redirectErrorStream(true).start()
+
+            val output = process.inputStream.bufferedReader().use { it.readText() }
+            process.waitFor()
+
+            // Line of interest: "    AppsUseLightTheme    REG_DWORD    0x1"
+            val line = output.lineSequence()
+                .firstOrNull { it.contains(REGISTRY_VALUE_NAME) }
+                ?: return false // value absent -> Windows defaults to light
+
+            // Take the hex token (locale-independent; the name/REG_DWORD words may localize).
+            val hexToken = line.trim().split(Regex("\\s+"))
+                .firstOrNull { it.startsWith("0x", ignoreCase = true) }
+                ?: return false
+
+            hexToken.substring(2).toLongOrNull(16) == 0L // 0 == light off == dark on
         } catch (_: Exception) {
             false
         }
     }
 
+    /**
+     * Applies the immersive dark/light title bar through the bundled Rust JNI library
+     * (DwmSetWindowAttribute). The native HWND is resolved without JNA, see [getHwnd].
+     */
     fun setWindowsTitleBarTheme(window: java.awt.Window, isDark: Boolean) {
         try {
-            val hwnd = HWND(Native.getComponentPointer(window))
-            val darkModeValue = WinDef.BOOLByReference(WinDef.BOOL(isDark))
-
-            DwmApi.INSTANCE.DwmSetWindowAttribute(
-                hwnd,
-                DwmApi.DWMWA_USE_IMMERSIVE_DARK_MODE,
-                darkModeValue.pointer,
-                4,
-            )
+            val hwnd = getHwnd(window)
+            if (hwnd != 0L) {
+                PayloadExtractNative.setWindowDarkTitleBar(hwnd, isDark)
+            }
         } catch (_: Throwable) {
         }
     }
 
+    /**
+     * Resolves the native Win32 HWND of an AWT window without JNA, via the JDK-internal
+     * sun.awt.AWTAccessor -> WComponentPeer.getHWnd() (public long). Requires
+     * --add-opens java.desktop/sun.awt and java.desktop/sun.awt.windows (set in build.gradle.kts).
+     * Returns 0 when unavailable (window not yet realized / access denied), so theming is skipped.
+     */
+    private fun getHwnd(window: java.awt.Window): Long {
+        return try {
+            val componentAccessor = Class.forName("sun.awt.AWTAccessor")
+                .getMethod("getComponentAccessor")
+                .apply { isAccessible = true }
+                .invoke(null)
+            val peer = Class.forName("sun.awt.AWTAccessor\$ComponentAccessor")
+                .getMethod("getPeer", java.awt.Component::class.java)
+                .apply { isAccessible = true }
+                .invoke(componentAccessor, window) ?: return 0L
+            peer.javaClass.getMethod("getHWnd")
+                .apply { isAccessible = true }
+                .invoke(peer) as Long
+        } catch (_: Throwable) {
+            0L
+        }
+    }
+
+    /**
+     * Polls [isWindowsDarkTheme] and fires [onThemeChanged] only when the value flips.
+     * Cancellable via the surrounding coroutine. Replaces the former JNA
+     * RegNotifyChangeKeyValue listener, matching the Linux/Mac polling pattern.
+     */
     suspend fun listenWindowsThemeChanges(onThemeChanged: (isDark: Boolean) -> Unit) {
-        val advapi32 = Advapi32.INSTANCE
-        val hKeyByRef = WinReg.HKEYByReference()
-
-        val openResult = advapi32.RegOpenKeyEx(
-            WinReg.HKEY_CURRENT_USER,
-            REGISTRY_KEY_PATH,
-            0,
-            WinNT.KEY_NOTIFY,
-            hKeyByRef,
-        )
-
-        if (openResult != WinError.ERROR_SUCCESS) return
-
-        val hKey = hKeyByRef.value
-        try {
-            while (currentCoroutineContext().isActive) {
-                val notifyResult = advapi32.RegNotifyChangeKeyValue(
-                    hKey,
-                    false,
-                    WinNT.REG_NOTIFY_CHANGE_LAST_SET,
-                    null,
-                    false
-                )
-
-                if (!currentCoroutineContext().isActive) break
-                if (notifyResult == WinError.ERROR_SUCCESS) {
-                    val currentSystemThemeIsDark = isWindowsDarkTheme()
-                    onThemeChanged(currentSystemThemeIsDark)
-                } else {
-                    break
-                }
+        var lastValue = isWindowsDarkTheme()
+        while (currentCoroutineContext().isActive) {
+            val currentValue = isWindowsDarkTheme()
+            if (currentValue != lastValue) {
+                lastValue = currentValue
+                onThemeChanged(currentValue)
             }
-        } finally {
-            advapi32.RegCloseKey(hKey)
+            delay(POLL_INTERVAL_MS)
         }
     }
 }

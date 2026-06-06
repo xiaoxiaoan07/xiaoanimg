@@ -11,9 +11,6 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.sun.jna.Platform.isLinux
-import com.sun.jna.Platform.isMac
-import com.sun.jna.Platform.isWindows
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
@@ -39,8 +36,9 @@ fun main() = application {
         icon = painterResource(Res.drawable.icon),
     ) {
         window.minimumSize = Dimension(380, 640)
+        val osName = System.getProperty("os.name").lowercase()
         when {
-            isWindows() -> {
+            osName.contains("win") -> {
                 var isDarkTheme by remember { mutableStateOf(WindowsThemeManager.isWindowsDarkTheme()) }
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
@@ -57,7 +55,7 @@ fun main() = application {
                 App(isDarkTheme)
             }
 
-            isMac() -> {
+            osName.contains("mac") -> {
                 var isDarkTheme by remember { mutableStateOf(MacOSThemeManager.isMacOSDarkTheme()) }
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
@@ -69,7 +67,7 @@ fun main() = application {
                 App(isDarkTheme)
             }
 
-            isLinux() -> {
+            osName.contains("nux") || osName.contains("nix") -> {
                 var isDarkTheme by remember { mutableStateOf(LinuxThemeManager.isLinuxDarkTheme()) }
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
