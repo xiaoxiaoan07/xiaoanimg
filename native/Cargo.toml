@@ -28,4 +28,4 @@ panic = "abort"
 [features]
 default = ["native-tls"]
 native-tls = ["payload-extract/http-native-tls"]
-vendored-tls = ["payload-extract/http-vendored-tls"]
+rustls-tls = ["payload-extract/http-rustls"]

@@ -119,7 +119,7 @@ val buildTasks = androidTargets.map { target ->
         group = "native"
         description = "Build Rust JNI library for ${target.abi}"
         workingDir = nativeDir.asFile
-        commandLine("cargo", "build", "--release", "--target", target.rustTriple, "--no-default-features", "--features", "vendored-tls")
+        commandLine("cargo", "build", "--release", "--target", target.rustTriple, "--no-default-features", "--features", "rustls-tls")
         environment("CARGO_TARGET_${envTarget.uppercase()}_LINKER", clang.absolutePath)
         environment("CC_$envTarget", clang.absolutePath)
         environment("CXX_$envTarget", clangxx.absolutePath)

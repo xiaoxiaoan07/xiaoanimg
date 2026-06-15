@@ -58,7 +58,7 @@ pub extern "system" fn Java_native_PayloadExtractNative_open(
                 }
             };
 
-            match input::open(&input_str, false) {
+            match input::open(&input_str, false, None) {
                 Ok(payload) => {
                     let boxed = Box::new(payload);
                     Ok(Box::into_raw(boxed) as jlong)
@@ -249,7 +249,7 @@ pub extern "system" fn Java_native_PayloadExtractNative_extractPartition(
 
             // Re-open with open_for_extract to get blob data for this partition
             let partition_names = vec![part_name.clone()];
-            let payload = match input::open_for_extract(&input_str, &partition_names, false) {
+            let payload = match input::open_for_extract(&input_str, &partition_names, false, None) {
                 Ok(p) => p,
                 Err(e) => {
                     let _ = env.throw_new(
