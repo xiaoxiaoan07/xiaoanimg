@@ -4,16 +4,16 @@
     <string name="app_name">Payload Extract</string>
     <string name="about">关于</string>
     <string name="view_source">查看源代码</string>
-    <string name="opensource_info">本项目基于 GPL-2.0 许可证开源。</string>
+    <string name="opensource_info">本项目基于 GPL-2.0 许可证开源</string>
 
     <!-- Input -->
     <string name="local">本地</string>
-    <string name="local_summary">选择本地的 payload.bin 或 OTA ZIP 文件</string>
+    <string name="local_summary">选择 payload.bin 或完整卡刷包文件</string>
     <string name="url">链接</string>
     <string name="url_summary">输入 HTTP/HTTPS 链接</string>
     <string name="input">输入</string>
     <string name="input_url">输入链接</string>
-    <string name="input_url_summary">输入 payload.bin 或 OTA ZIP 的链接</string>
+    <string name="input_url_summary">输入完整卡刷包的链接</string>
     <string name="parse">解析</string>
     <string name="parsing">解析中…</string>
     <string name="select_file">选择 payload 文件</string>
@@ -42,6 +42,8 @@
     <string name="retry">重试</string>
     <string name="done">完成</string>
     <string name="failed">失败</string>
+    <string name="downloading">下载中</string>
+    <string name="extracting">提取中</string>
 
     <!-- Detail Dialog -->
     <string name="size">大小</string>

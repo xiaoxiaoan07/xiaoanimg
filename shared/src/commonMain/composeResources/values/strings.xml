@@ -4,16 +4,16 @@
     <string name="app_name">Payload Extract</string>
     <string name="about">About</string>
     <string name="view_source">View source on</string>
-    <string name="opensource_info">This is an open source project licensed under GPL-2.0.</string>
+    <string name="opensource_info">This is an open source project licensed under GPL-2.0</string>
 
     <!-- Input -->
     <string name="local">Local</string>
-    <string name="local_summary">Select a local payload.bin or OTA ZIP</string>
+    <string name="local_summary">Select payload.bin or full OTA zip file</string>
     <string name="url">URL</string>
     <string name="url_summary">Enter an HTTP/HTTPS URL</string>
     <string name="input">Input</string>
     <string name="input_url">Input URL</string>
-    <string name="input_url_summary">Enter the URL of payload.bin or OTA ZIP</string>
+    <string name="input_url_summary">Enter URL of full OTA zip</string>
     <string name="parse">Parse</string>
     <string name="parsing">Parsing…</string>
     <string name="select_file">Select payload file</string>
@@ -42,6 +42,8 @@
     <string name="retry">Retry</string>
     <string name="done">Done</string>
     <string name="failed">Failed</string>
+    <string name="downloading">Downloading</string>
+    <string name="extracting">Extracting</string>
 
     <!-- Detail Dialog -->
     <string name="size">Size</string>

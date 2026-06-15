@@ -42,6 +42,7 @@ fun MainScreen() {
                 selectFileTitle = selectFileTitle,
                 selectOutputDirTitle = selectOutputDirTitle,
             )
+            Dialogs(viewModel)
         }
     } else {
         Scaffold(
@@ -67,10 +68,15 @@ fun MainScreen() {
                 selectFileTitle = selectFileTitle,
                 selectOutputDirTitle = selectOutputDirTitle,
             )
+            Dialogs(viewModel)
         }
     }
+}
 
-    // Dialogs
+@Composable
+fun Dialogs(
+    viewModel: AppViewModel
+) {
     UrlInputDialog(
         show = viewModel.showUrlDialog,
         onDismiss = { viewModel.showUrlDialog = false },
@@ -79,7 +85,6 @@ fun MainScreen() {
             viewModel.showUrlDialog = false
         },
     )
-
     PartitionDetailDialog(
         show = viewModel.showPartitionDetail,
         partition = viewModel.partitionDetailData,

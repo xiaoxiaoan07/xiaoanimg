@@ -9,9 +9,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import model.ExtractPhase
+import model.ExtractProgress
 import model.PartitionInfo
 import model.PayloadMetadata
 import native.PayloadExtractNative
@@ -64,6 +68,12 @@ class AppViewModel {
         private set
     var currentPartition by mutableStateOf<String?>(null)
         private set
+
+    // Per-partition extraction progress (phase + fraction) for the current phase
+    // (HTTP download, then extraction). Absent when not extracting.
+    var partitionProgress by mutableStateOf<Map<String, ExtractProgress>>(emptyMap())
+        private set
+    private var nextToken = 1L
 
     // Dialogs
     var showUrlDialog by mutableStateOf(false)
@@ -134,25 +144,66 @@ class AppViewModel {
 
         failedPartitions = failedPartitions - name
 
+        val token = nextToken++
+        val isUrl = inputPath.startsWith("http://") || inputPath.startsWith("https://")
+        val targetDir = extractOutputDir()
         extractJobs[name]?.cancel()
         extractJobs[name] = scope.launch {
             currentPartition = name
+            // Seed with the expected first phase so the label is correct before
+            // the first native reading (URLs download first; local goes straight to extract).
+            partitionProgress = partitionProgress +
+                (name to ExtractProgress(if (isUrl) ExtractPhase.DOWNLOAD else ExtractPhase.EXTRACT, 0f))
+            // Poll native two-phase progress while the (blocking) extract runs on IO.
+            val poller = launch {
+                while (isActive) {
+                    val raw = withContext(Dispatchers.IO) {
+                        PayloadExtractNative.getExtractProgress(token)
+                    }
+                    if (raw >= 0) {
+                        val phase = if ((raw shr 16) and 0xF == 0L) ExtractPhase.DOWNLOAD else ExtractPhase.EXTRACT
+                        val permille = (raw and 0xFFFF).toInt()
+                        partitionProgress = partitionProgress + (name to ExtractProgress(phase, permille / 1000f))
+                    }
+                    delay(120)
+                }
+            }
             try {
                 withContext(Dispatchers.IO) {
                     PayloadExtractNative.extractPartition(
-                        inputPath, outputDir, name, threadCount, verifyHash
+                        inputPath, targetDir, name, threadCount, verifyHash, token
                     )
                 }
                 completedPartitions = completedPartitions + name
             } catch (e: Exception) {
                 failedPartitions = failedPartitions + (name to (e.message ?: "Unknown error"))
             } finally {
+                poller.cancel()
+                partitionProgress = partitionProgress - name
                 if (currentPartition == name) {
                     currentPartition = null
                 }
                 extractJobs.remove(name)
             }
         }
+    }
+
+    /**
+     * Per-payload output subfolder: `<outputDir>/<input file name without .zip/.bin>`,
+     * so extractions from different ROMs don't mix. Joined with '/' (the native side's
+     * Rust `Path` accepts forward slashes on Windows too). Falls back to "payload".
+     */
+    private fun extractOutputDir(): String {
+        val fileName = inputPath
+            .substringAfterLast('/')
+            .substringAfterLast('\\')
+            .substringBefore('?')
+        val base = when {
+            fileName.endsWith(".zip", ignoreCase = true) -> fileName.dropLast(4)
+            fileName.endsWith(".bin", ignoreCase = true) -> fileName.dropLast(4)
+            else -> fileName
+        }.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "payload" }
+        return outputDir.trimEnd('/', '\\') + "/" + base
     }
 
     private fun closePayload() {

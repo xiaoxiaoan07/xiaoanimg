@@ -38,11 +38,23 @@ fun LazyListScope.payloadInfoSection(metadata: PayloadMetadata?) {
                 .padding(bottom = 12.dp),
             insideMargin = PaddingValues(16.dp),
         ) {
+            // Bottom padding is dropped on whichever optional row is actually last.
+            val hasSecurityPatch = metadata.securityPatchLevel != null
+            val hasUpdateType = metadata.partialUpdate != null
+
             InfoTextView(title = stringResource(Res.string.version), text = metadata.version.toString())
             InfoTextView(title = stringResource(Res.string.partitions), text = metadata.partitionCount.toString())
-            InfoTextView(title = stringResource(Res.string.block_size), text = "${metadata.blockSize}")
+            InfoTextView(
+                title = stringResource(Res.string.block_size),
+                text = "${metadata.blockSize}",
+                isLast = !hasSecurityPatch && !hasUpdateType,
+            )
             metadata.securityPatchLevel?.let {
-                InfoTextView(title = stringResource(Res.string.security_patch), text = it)
+                InfoTextView(
+                    title = stringResource(Res.string.security_patch),
+                    text = it,
+                    isLast = !hasUpdateType,
+                )
             }
             metadata.partialUpdate?.let {
                 InfoTextView(
@@ -50,9 +62,6 @@ fun LazyListScope.payloadInfoSection(metadata: PayloadMetadata?) {
                     text = if (it) stringResource(Res.string.update_type_incremental) else stringResource(Res.string.update_type_full),
                     isLast = true,
                 )
-            } ?: run {
-                // Remove bottom padding from last visible item
-                metadata.securityPatchLevel?.let {} ?: run {}
             }
         }
     }

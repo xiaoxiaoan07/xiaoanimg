@@ -134,6 +134,7 @@ fun WideScreenContent(
                         completedPartitions = viewModel.completedPartitions,
                         failedPartitions = viewModel.failedPartitions,
                         currentPartition = viewModel.currentPartition,
+                        partitionProgress = viewModel.partitionProgress,
                         onExtract = { viewModel.extractPartition(it) },
                         onDetail = { viewModel.openPartitionDetail(it) },
                     )

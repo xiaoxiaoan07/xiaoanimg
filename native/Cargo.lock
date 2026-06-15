@@ -1108,7 +1108,7 @@ dependencies = [
 [[package]]
 name = "payload-extract"
 version = "0.1.0"
-source = "git+https://github.com/YuKongA/payload_extract_rs#cf66123564f0fb8b21a781861d671295e48203df"
+source = "git+https://github.com/YuKongA/payload_extract_rs#990d684fd950ad174abdae4b74223bcd705ab8c4"
 dependencies = [
  "anyhow",
  "bsdiff-android",
@@ -1129,6 +1129,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
  "thiserror",
  "tokio",
  "xz2",
@@ -1138,7 +1139,7 @@ dependencies = [
 
 [[package]]
 name = "payload-extract-jni"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "hex",

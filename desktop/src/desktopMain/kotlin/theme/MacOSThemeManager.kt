@@ -3,10 +3,9 @@ package theme
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlin.time.Duration.Companion.milliseconds
 
 object MacOSThemeManager {
-    private const val POLL_INTERVAL_MS = 1500L
-
     fun isMacOSDarkTheme(): Boolean {
         return try {
             val process = ProcessBuilder("defaults", "read", "-g", "AppleInterfaceStyle").start()
@@ -27,7 +26,7 @@ object MacOSThemeManager {
                     lastValue = currentValue
                     onThemeChanged(currentValue)
                 }
-                delay(POLL_INTERVAL_MS)
+                delay(1500.milliseconds)
             }
         } catch (_: Exception) {
         }

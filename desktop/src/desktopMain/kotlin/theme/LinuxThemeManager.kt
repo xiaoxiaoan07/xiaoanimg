@@ -7,6 +7,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
+import kotlin.time.Duration.Companion.milliseconds
 
 object LinuxThemeManager {
     private val darkThemeRegex = ".*dark.*".toRegex(RegexOption.IGNORE_CASE)
@@ -47,7 +48,7 @@ object LinuxThemeManager {
             registerListener(listener)
 
             while (currentCoroutineContext().isActive) {
-                delay(1000)
+                delay(1000.milliseconds)
             }
 
             removeListener(listener)
@@ -59,7 +60,7 @@ object LinuxThemeManager {
                     lastValue = currentValue
                     onThemeChanged(currentValue)
                 }
-                delay(2000)
+                delay(2000.milliseconds)
             }
         }
     }

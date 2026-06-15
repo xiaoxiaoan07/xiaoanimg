@@ -4,12 +4,14 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import native.PayloadExtractNative
+import theme.WindowsThemeManager.getHwnd
+import theme.WindowsThemeManager.isWindowsDarkTheme
+import kotlin.time.Duration.Companion.milliseconds
 
 object WindowsThemeManager {
     private const val REGISTRY_KEY_PATH =
         "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
     private const val REGISTRY_VALUE_NAME = "AppsUseLightTheme"
-    private const val POLL_INTERVAL_MS = 1500L
 
     /**
      * Reads HKCU\...\Personalize\AppsUseLightTheme via reg.exe.
@@ -92,7 +94,7 @@ object WindowsThemeManager {
                 lastValue = currentValue
                 onThemeChanged(currentValue)
             }
-            delay(POLL_INTERVAL_MS)
+            delay(1500.milliseconds)
         }
     }
 }

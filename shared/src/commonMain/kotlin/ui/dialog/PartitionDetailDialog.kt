@@ -18,6 +18,7 @@ import payload_extract_gui.shared.generated.resources.size
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 import util.formatFileSize
@@ -29,7 +30,7 @@ fun PartitionDetailDialog(
     onDismissRequest: () -> Unit,
     onDismissFinished: () -> Unit,
 ) {
-    WindowDialog(
+    OverlayDialog(
         show = show,
         title = partition?.name ?: "",
         onDismissRequest = onDismissRequest,

@@ -83,11 +83,15 @@ compose.desktop {
     application {
         mainClass = "MainKt"
 
-        // JNA-free HWND retrieval (sun.awt.AWTAccessor / WComponentPeer.getHWnd) needs these open.
-        jvmArgs += listOf(
-            "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
-            "--add-opens", "java.desktop/sun.awt.windows=ALL-UNNAMED",
-        )
+        // Windows-only: FFM native access + reflective HWND (sun.awt). Gated on build host
+        // so non-Windows packages don't warn about the missing sun.awt.windows package.
+        if (System.getProperty("os.name").lowercase().contains("win")) {
+            jvmArgs += listOf(
+                "--enable-native-access=ALL-UNNAMED",
+                "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+                "--add-opens", "java.desktop/sun.awt.windows=ALL-UNNAMED",
+            )
+        }
 
         buildTypes.release.proguard {
             configurationFiles.from("proguard-rules-jvm.pro")
@@ -101,7 +105,7 @@ compose.desktop {
 
             windows.iconFile = project.file("src/desktopMain/resources/windows/Icon.ico")
             linux.iconFile = project.file("src/desktopMain/resources/linux/Icon.png")
-            macOS.iconFile = project.file("src/desktopMain/resources/macos/Icon.png")
+            macOS.iconFile = project.file("src/desktopMain/resources/macos/Icon.icns")
         }
     }
 }

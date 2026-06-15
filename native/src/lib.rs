@@ -1,5 +1,8 @@
-use std::path::Path;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::ptr;
+use std::sync::atomic::{AtomicU8, AtomicU64, Ordering};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use jni::errors::ThrowRuntimeExAndDefault;
 use jni::objects::{JClass, JString};
@@ -9,7 +12,7 @@ use jni::{Env, EnvUnowned, jni_str};
 use serde::Serialize;
 
 use payload_extract::extract::{self, ExtractConfig};
-use payload_extract::input;
+use payload_extract::input::{self, OpenOptions, ProgressCallback};
 use payload_extract::payload::PayloadView;
 
 /// Helper: throw a Java exception and return null.
@@ -30,6 +33,47 @@ fn get_string(env: &mut Env, s: &JString) -> Result<String, String> {
 /// The caller must ensure the handle is a valid pointer returned by `open`.
 unsafe fn get_payload<'a>(handle: jlong) -> &'a PayloadView {
     unsafe { &*(handle as *const PayloadView) }
+}
+
+// ============================================================
+// Extraction progress registry
+//
+// `extractPartition` publishes two-phase progress into a token-keyed cell that
+// the Kotlin side polls via `getExtractProgress`. The progress callbacks only
+// touch atomics (no JNI calls), so the rayon/async worker threads that invoke
+// them never need to attach to the JVM.
+// ============================================================
+
+const PHASE_DOWNLOAD: u8 = 0;
+const PHASE_EXTRACT: u8 = 1;
+
+struct ProgressCell {
+    phase: AtomicU8,
+    current: AtomicU64,
+    total: AtomicU64,
+}
+
+static EXTRACT_PROGRESS: LazyLock<Mutex<HashMap<jlong, Arc<ProgressCell>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// Removes the progress entry on drop, cleaning up the token on every exit path.
+struct ProgressGuard(jlong);
+
+impl Drop for ProgressGuard {
+    fn drop(&mut self) {
+        if let Ok(mut map) = EXTRACT_PROGRESS.lock() {
+            map.remove(&self.0);
+        }
+    }
+}
+
+/// A `ProgressCallback` that records `(current, total)` for `phase` into `cell`.
+fn progress_sink(cell: Arc<ProgressCell>, phase: u8) -> ProgressCallback {
+    Arc::new(move |current, total| {
+        cell.phase.store(phase, Ordering::Relaxed);
+        cell.total.store(total, Ordering::Relaxed);
+        cell.current.store(current, Ordering::Relaxed);
+    })
 }
 
 // ============================================================
@@ -197,11 +241,13 @@ pub extern "system" fn Java_native_PayloadExtractNative_getMetadataJson(
         .resolve::<ThrowRuntimeExAndDefault>()
 }
 
-/// Extract a single partition.
+/// Extract a single partition, publishing two-phase progress under `token`.
 ///
-/// Re-opens the payload with `open_for_extract` to ensure blob data is available,
-/// which is necessary for HTTP URLs (where `open` only downloads metadata).
-/// For local files this is a fast mmap re-open.
+/// Re-opens the payload with `open_for_extract_with` to ensure blob data is
+/// available (necessary for HTTP URLs, where `open` only downloads metadata).
+/// For HTTP this streams the needed blob into a temp file in the output dir and
+/// reports download progress; then extraction reports per-operation progress.
+/// For local files there is no download phase (fast mmap re-open).
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_native_PayloadExtractNative_extractPartition(
     mut unowned_env: EnvUnowned,
@@ -211,6 +257,7 @@ pub extern "system" fn Java_native_PayloadExtractNative_extractPartition(
     partition_name: JString,
     threads: jint,
     verify: bool,
+    token: jlong,
 ) {
     unowned_env
         .with_env(|env| -> Result<(), jni::errors::Error> {
@@ -247,20 +294,48 @@ pub extern "system" fn Java_native_PayloadExtractNative_extractPartition(
                 }
             };
 
-            // Re-open with open_for_extract to get blob data for this partition
+            // Register a progress cell; the guard removes it on every return path.
+            let cell = Arc::new(ProgressCell {
+                phase: AtomicU8::new(PHASE_DOWNLOAD),
+                current: AtomicU64::new(0),
+                total: AtomicU64::new(0),
+            });
+            if let Ok(mut map) = EXTRACT_PROGRESS.lock() {
+                map.insert(token, cell.clone());
+            }
+            let _guard = ProgressGuard(token);
+
+            let output_path = Path::new(&output_str);
+            // The HTTP temp file is written into the output dir, so ensure it exists.
+            let _ = std::fs::create_dir_all(output_path);
+
+            // Re-open for extraction (downloads blob data for HTTP), reporting
+            // download bytes into the cell. temp_dir = output dir avoids tmpfs and
+            // guarantees a writable location (required on Android).
             let partition_names = vec![part_name.clone()];
-            let payload = match input::open_for_extract(&input_str, &partition_names, false, None) {
-                Ok(p) => p,
-                Err(e) => {
-                    let _ = env.throw_new(
-                        jni_str!("java/lang/RuntimeException"),
-                        JNIString::from(
-                            format!("Failed to open payload for extraction: {e}").as_str(),
-                        ),
-                    );
-                    return Ok(());
-                }
+            let open_opts = OpenOptions {
+                insecure: false,
+                user_agent: None,
+                download_progress: Some(progress_sink(cell.clone(), PHASE_DOWNLOAD)),
+                temp_dir: Some(PathBuf::from(&output_str)),
             };
+            let payload =
+                match input::open_for_extract_with(&input_str, &partition_names, &open_opts) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        let _ = env.throw_new(
+                            jni_str!("java/lang/RuntimeException"),
+                            JNIString::from(
+                                format!("Failed to open payload for extraction: {e}").as_str(),
+                            ),
+                        );
+                        return Ok(());
+                    }
+                };
+
+            // Download done; switch the cell to the extraction phase.
+            cell.phase.store(PHASE_EXTRACT, Ordering::Relaxed);
+            cell.current.store(0, Ordering::Relaxed);
 
             let config = ExtractConfig {
                 verify_ops: verify,
@@ -268,9 +343,8 @@ pub extern "system" fn Java_native_PayloadExtractNative_extractPartition(
                 quiet: true,
                 source_dir: None,
                 out_config: None,
+                progress: Some(progress_sink(cell.clone(), PHASE_EXTRACT)),
             };
-
-            let output_path = Path::new(&output_str);
 
             if let Err(e) =
                 extract::extract_partitions(&payload, output_path, &partition_names, &config)
@@ -284,6 +358,39 @@ pub extern "system" fn Java_native_PayloadExtractNative_extractPartition(
             Ok(())
         })
         .resolve::<ThrowRuntimeExAndDefault>();
+}
+
+/// Poll two-phase extraction progress for `token`.
+///
+/// Returns `-1` when there is no active extraction (not started / finished).
+/// Otherwise returns `(phase << 16) | permille`, where `phase` is 0 (downloading)
+/// or 1 (extracting) and `permille` is 0..=1000. Does no JNI calls, so (like
+/// `close`) it takes the env/class directly without `with_env`.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_native_PayloadExtractNative_getExtractProgress(
+    _env: EnvUnowned,
+    _class: JClass,
+    token: jlong,
+) -> jlong {
+    let cell = {
+        let map = match EXTRACT_PROGRESS.lock() {
+            Ok(m) => m,
+            Err(_) => return -1,
+        };
+        match map.get(&token) {
+            Some(c) => c.clone(),
+            None => return -1,
+        }
+    };
+    let phase = cell.phase.load(Ordering::Relaxed) as jlong;
+    let total = cell.total.load(Ordering::Relaxed);
+    let current = cell.current.load(Ordering::Relaxed);
+    let permille = if total > 0 {
+        ((current.min(total) * 1000) / total) as jlong
+    } else {
+        0
+    };
+    (phase << 16) | permille
 }
 
 /// Close and free the PayloadView handle.
