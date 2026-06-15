@@ -19,7 +19,7 @@ anyhow = "1"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dwm"] }
 
 [profile.release]
-opt-level = 3
+opt-level = "s"
 lto = "fat"
 codegen-units = 1
 strip = true

@@ -8,7 +8,7 @@
 
     <!-- Input -->
     <string name="local">本地</string>
-    <string name="local_summary">选择 payload.bin 或完整卡刷包文件</string>
+    <string name="local_summary">选择 payload.bin 或完整卡刷包</string>
     <string name="url">链接</string>
     <string name="url_summary">输入 HTTP/HTTPS 链接</string>
     <string name="input">输入</string>

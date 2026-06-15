@@ -78,6 +78,8 @@ jobs:
 
   android:
     runs-on: ubuntu-latest
+    env:
+      ONDK_VERSION: r29.6
     steps:
       - uses: actions/checkout@v6
 
@@ -87,8 +89,24 @@ jobs:
           java-version: 21
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache ONDK
+        id: ondk-cache
+        uses: actions/cache@v5
         with:
-          targets: aarch64-linux-android,x86_64-linux-android
+          path: ${{ runner.temp }}/ondk
+          key: ondk-${{ env.ONDK_VERSION }}-linux
+
+      - name: Download ONDK
+        if: steps.ondk-cache.outputs.cache-hit != 'true'
+        run: |
+          url="https://github.com/topjohnwu/ondk/releases/download/${ONDK_VERSION}/ondk-${ONDK_VERSION}-linux.tar.xz"
+          mkdir -p "${{ runner.temp }}/ondk"
+          curl -fL "$url" -o "${{ runner.temp }}/ondk.tar.xz"
+          tar -C "${{ runner.temp }}/ondk" --strip-components=1 -xf "${{ runner.temp }}/ondk.tar.xz"
+
+      - name: Link ONDK Rust toolchain
+        run: rustup toolchain link ondk "${{ runner.temp }}/ondk/toolchains/rust"
 
       - uses: actions/cache@v5
         with:
@@ -96,8 +114,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             native/target
-          key: android-cargo-${{ hashFiles('native/Cargo.lock') }}
-          restore-keys: android-cargo-
+          key: android-ondk-cargo-${{ hashFiles('native/Cargo.lock') }}
+          restore-keys: android-ondk-cargo-
 
       - uses: gradle/actions/setup-gradle@v6
 
@@ -107,6 +125,7 @@ jobs:
       - name: Build android
         run: ./gradlew :android:assembleRelease
         env:
+          ONDK_HOME: ${{ runner.temp }}/ondk
           KEYSTORE_PATH: "../keystore.jks"
           KEYSTORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ALIAS }}

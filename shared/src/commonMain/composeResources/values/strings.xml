@@ -8,7 +8,7 @@
 
     <!-- Input -->
     <string name="local">Local</string>
-    <string name="local_summary">Select payload.bin or full OTA zip file</string>
+    <string name="local_summary">Select payload.bin or full OTA zip</string>
     <string name="url">URL</string>
     <string name="url_summary">Enter an HTTP/HTTPS URL</string>
     <string name="input">Input</string>
