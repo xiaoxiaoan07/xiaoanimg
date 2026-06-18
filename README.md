@@ -29,7 +29,7 @@ A cross-platform GUI application for extracting Android OTA `payload.bin` files,
 
 #### Prerequisites
 
-- JDK 21
+- JDK 25
 - [Rust toolchain](https://rustup.rs/)
 
 #### Desktop
@@ -80,7 +80,7 @@ A cross-platform GUI application for extracting Android OTA `payload.bin` files,
 
 #### 环境要求
 
-- JDK 21
+- JDK 25
 - [Rust 工具链](https://rustup.rs/)
 
 #### 桌面端

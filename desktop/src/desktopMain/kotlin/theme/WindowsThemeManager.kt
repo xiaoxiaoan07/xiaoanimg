@@ -3,15 +3,41 @@ package theme
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import native.PayloadExtractNative
-import theme.WindowsThemeManager.getHwnd
-import theme.WindowsThemeManager.isWindowsDarkTheme
+import java.lang.foreign.Arena
+import java.lang.foreign.FunctionDescriptor
+import java.lang.foreign.Linker
+import java.lang.foreign.MemorySegment
+import java.lang.foreign.SymbolLookup
+import java.lang.foreign.ValueLayout
+import java.lang.invoke.MethodHandle
 import kotlin.time.Duration.Companion.milliseconds
 
 object WindowsThemeManager {
     private const val REGISTRY_KEY_PATH =
         "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
     private const val REGISTRY_VALUE_NAME = "AppsUseLightTheme"
+    private const val DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+
+    /**
+     * FFM downcall handle for dwmapi!DwmSetWindowAttribute(HWND, DWORD, LPCVOID, DWORD).
+     * Resolved lazily; null when dwmapi / the symbol can't be found. Replaces the former
+     * Rust JNI setWindowDarkTitleBar export (FFM is a stable API on JDK 22+).
+     */
+    private val dwmSetWindowAttribute: MethodHandle? by lazy {
+        try {
+            val sym = SymbolLookup.libraryLookup("dwmapi", Arena.global())
+                .find("DwmSetWindowAttribute").orElseThrow()
+            Linker.nativeLinker().downcallHandle(
+                sym,
+                FunctionDescriptor.of(
+                    ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT,
+                    ValueLayout.ADDRESS, ValueLayout.JAVA_INT,
+                ),
+            )
+        } catch (_: Throwable) {
+            null
+        }
+    }
 
     /**
      * Reads HKCU\...\Personalize\AppsUseLightTheme via reg.exe.
@@ -44,14 +70,25 @@ object WindowsThemeManager {
     }
 
     /**
-     * Applies the immersive dark/light title bar through the bundled Rust JNI library
-     * (DwmSetWindowAttribute). The native HWND is resolved without JNA, see [getHwnd].
+     * Applies the immersive dark/light title bar via dwmapi!DwmSetWindowAttribute through the
+     * Java FFM downcall handle. The native HWND is resolved without JNA, see [getHwnd].
+     * invokeWithArguments (not the signature-polymorphic MethodHandle.invoke) keeps this
+     * ProGuard-safe. No-op when dwmapi or the HWND can't be resolved.
      */
     fun setWindowsTitleBarTheme(window: java.awt.Window, isDark: Boolean) {
         try {
+            val handle = dwmSetWindowAttribute ?: return
             val hwnd = getHwnd(window)
-            if (hwnd != 0L) {
-                PayloadExtractNative.setWindowDarkTitleBar(hwnd, isDark)
+            if (hwnd == 0L) return
+            Arena.ofConfined().use { arena ->
+                val pv = arena.allocate(ValueLayout.JAVA_INT)
+                pv.set(ValueLayout.JAVA_INT, 0L, if (isDark) 1 else 0)
+                handle.invokeWithArguments(
+                    MemorySegment.ofAddress(hwnd),
+                    DWMWA_USE_IMMERSIVE_DARK_MODE,
+                    pv,
+                    4,
+                )
             }
         } catch (_: Throwable) {
         }

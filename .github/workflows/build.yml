@@ -47,7 +47,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: 21
+          java-version: 25
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -86,7 +86,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: 21
+          java-version: 25
 
       - uses: dtolnay/rust-toolchain@stable
 
