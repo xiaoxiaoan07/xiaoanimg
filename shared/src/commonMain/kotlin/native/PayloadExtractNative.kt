@@ -1,6 +1,6 @@
 package native
 
-expect object PayloadExtractNative {
+expect object xiaoxiaoan07 {
     fun open(input: String): Long
     fun listPartitionsJson(handle: Long, withHash: Boolean): String
     fun getMetadataJson(handle: Long): String
