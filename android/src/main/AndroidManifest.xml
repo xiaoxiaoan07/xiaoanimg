@@ -11,9 +11,9 @@
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="Payload Extract"
+        android:label="小安提取img"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PayloadExtract">
+        android:theme="@style/Theme.小安提取img">
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|navigation|smallestScreenSize|touchscreen|uiMode"
