@@ -2,7 +2,7 @@ package native
 
 import java.io.File
 
-actual object PayloadExtractNative {
+actual object 小安提取img {
     init {
         // java.library.path is set by Gradle to include the native output directory,
         // so System.loadLibrary should work directly for development.
